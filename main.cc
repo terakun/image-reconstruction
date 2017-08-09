@@ -1,7 +1,8 @@
+#include <iostream>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include "./denoiser.h"
+#include "./reconstructor.h"
 
 int main(int argc, char *argv[]){
 
@@ -14,9 +15,10 @@ int main(int argc, char *argv[]){
   if(src_img.empty()) return -1;
 
   // processing
-  denoiser dn;
+  ImageReconstructor rc;
+  rc.set_epsilon(1.0e-3);
   cv::Mat dst_img;
-  dn(src_img,dst_img);
+  rc(src_img,dst_img);
 
   cv::namedWindow("source image", CV_WINDOW_AUTOSIZE|CV_WINDOW_FREERATIO);
   cv::imshow("source image", src_img);
