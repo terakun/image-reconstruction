@@ -21,8 +21,38 @@ double ImageReconstructor::compute_vertical_diff(const Eigen::MatrixXd &mat,int 
   return mat((r+1)%mat.rows(),c)-mat(r,c);
 }
 
+Eigen::Vector2d ImageReconstructor::compute_grad(const Eigen::MatrixXd &mat,int r,int c){
+  Eigen::Vector2d grad;
+  grad << compute_horizontal_diff(mat,r,c) ,
+          compute_vertical_diff(mat,r,c);
+  return grad;
+}
+
 bool ImageReconstructor::check_stop_criterion(){
-  return true;
+  double max_r1_norm = -1.0e10 , max_r2 = -1.0e10;
+
+  for(int r=0;r<img_rows_;++r){
+    for(int c=0;c<img_cols_;++c){
+      Eigen::Vector2d Du = compute_grad(u_,r,c);
+      double Du_norm = Du.norm();
+
+      if(w_horizontal_(r,c)==0&&w_vertical_(r,c)==0){
+        double r2 = Du_norm - 1.0/beta_;
+        max_r2 = std::max(r2,max_r2);
+      }else{
+        Eigen::Vector2d w_vec;
+        w_vec << w_horizontal_(r,c) , w_vertical_(r,c);
+        Eigen::Vector2d r1 = w_vec/(w_vec.norm()*beta_) + w_vec - Du;
+        max_r1_norm = std::max(r1.norm(),max_r1_norm);
+      }
+    }
+  }
+
+  Eigen::MatrixXd r3(img_rows_,img_cols_);
+
+  double r3_norm = r3.lpNorm<Eigen::Infinity>(); 
+
+  return max(max_r1_norm,max_r2,r3_norm) < epsilon_;
 }
 
 void ImageReconstructor::compute_w(){

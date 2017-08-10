@@ -3,6 +3,15 @@
 #include <opencv2/core/core.hpp>
 #include <Eigen/Dense>
 
+template<typename First> 
+First max(First first){
+}
+
+template<typename First,typename... Rest> 
+First max(First first,Rest... rest){
+  return std::max(first,max(rest...));
+}
+
 class ImageReconstructor{
   int img_rows_,img_cols_;
   double beta_,mu_;
@@ -19,7 +28,12 @@ class ImageReconstructor{
 
   double compute_horizontal_diff(const Eigen::MatrixXd &,int r,int c);
   double compute_vertical_diff(const Eigen::MatrixXd &,int r,int c);
+  Eigen::Vector2d compute_grad(const Eigen::MatrixXd &,int r,int c);
+
+  void blur(Eigen::MatrixXd &,const Eigen::MatrixXd &);
+
   bool check_stop_criterion();
+
   void compute_w();
   void compute_u();
   
