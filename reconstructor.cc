@@ -1,5 +1,6 @@
 #include <opencv2/imgproc.hpp>
 #include <unsupported/Eigen/FFT>
+#include <complex>
 #include "./reconstructor.h"
 
 void ImageReconstructor::operator()(const cv::Mat &src_img,cv::Mat &dst_img){
@@ -48,9 +49,29 @@ void ImageReconstructor::compute_w(){
 }
 
 void ImageReconstructor::compute_u(){
+  Eigen::MatrixXcd w_horizontal_fft(img_rows_,img_cols_);
+  Eigen::MatrixXcd w_vertical_fft(img_rows_,img_cols_);
+
+  fft_2dim(w_horizontal_fft,w_horizontal_);
+  fft_2dim(w_vertical_fft,w_vertical_);
+
+  Eigen::MatrixXcd u_fft(img_rows_,img_cols_);
+  for(int r=0;r<img_rows_;++r){
+    for(int c=0;c<img_cols_;++c){
+      std::complex<double> numer = 
+        std::conj(D_horizontal_fft_(r,c))*w_horizontal_fft(r,c)+
+        std::conj(D_vertical_fft_(r,c))*w_vertical_fft(r,c)+
+        (mu_/beta_)*std::conj(K_fft_(r,c))*observed_img_fft_(r,c);
+
+      std::complex<double> denom;
+
+      u_fft(r,c) = numer/denom;
+    }
+  }
+
 }
 
-void ImageReconstructor::fft2dim(Eigen::MatrixXcd &dst_mat,const Eigen::MatrixXcd &src_mat,bool forward){
+void ImageReconstructor::fft_2dim(Eigen::MatrixXcd &dst_mat,const Eigen::MatrixXcd &src_mat,bool forward){
   Eigen::FFT<double> fft;
   int rows = src_mat.rows();
   int cols = src_mat.cols();

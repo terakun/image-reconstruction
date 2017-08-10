@@ -10,6 +10,12 @@ class ImageReconstructor{
 
   Eigen::MatrixXd w_horizontal_,w_vertical_;
   Eigen::MatrixXd u_;
+  Eigen::MatrixXd observed_img_;
+
+  Eigen::MatrixXcd D_horizontal_fft_;  // difference operator
+  Eigen::MatrixXcd D_vertical_fft_;    // difference operator
+  Eigen::MatrixXcd K_fft_;             // blurring operator
+  Eigen::MatrixXcd observed_img_fft_;
 
   double compute_horizontal_diff(const Eigen::MatrixXd &,int r,int c);
   double compute_vertical_diff(const Eigen::MatrixXd &,int r,int c);
@@ -17,7 +23,7 @@ class ImageReconstructor{
   void compute_w();
   void compute_u();
   
-  void fft2dim(Eigen::MatrixXcd &dst_mat,const Eigen::MatrixXcd &src_mat,bool forward=true);
+  void fft_2dim(Eigen::MatrixXcd &dst_mat,const Eigen::MatrixXcd &src_mat,bool forward=true);
 
   public:
   ImageReconstructor(){}
