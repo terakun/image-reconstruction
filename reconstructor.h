@@ -15,12 +15,14 @@ namespace imagereconstruction{
   }
 
   class ImageReconstructor{
-    static constexpr int gaussian_size = 3;
-    static const double gaussian[gaussian_size][gaussian_size];
+    int gaussian_size_;
+    Eigen::MatrixXd gaussian_filter_;
 
     static constexpr int diff_size = 3;
     static const double diff_horizontal[diff_size][diff_size];
     static const double diff_vertical[diff_size][diff_size];
+
+    int max_cnt_;
 
     int img_rows_,img_cols_;
     double beta_,mu_;
@@ -38,34 +40,41 @@ namespace imagereconstruction{
     Eigen::MatrixXcd K_fft_;             // blurring operator
     Eigen::MatrixXcd observed_img_fft_;
 
-    double compute_horizontal_diff(const Eigen::MatrixXd &,int r,int c);
-    double compute_vertical_diff(const Eigen::MatrixXd &,int r,int c);
-    Eigen::Vector2d compute_grad(const Eigen::MatrixXd &,int r,int c);
 
-    double blur(const Eigen::MatrixXd &src_mat,int r,int c);
-    void blur(Eigen::MatrixXd &dst_mat,const Eigen::MatrixXd &src_mat);
+    double compute_horizontal_diff(const Eigen::MatrixXd &,int r,int c)const;
+    double compute_vertical_diff(const Eigen::MatrixXd &,int r,int c)const;
+    Eigen::Vector2d compute_grad(const Eigen::MatrixXd &,int r,int c)const;
 
-    bool check_stop_criterion();
+    double blur(const Eigen::MatrixXd &src_mat,int r,int c)const;
+
+    bool check_stop_criterion()const;
 
     void compute_w();
     void compute_u();
 
-    void fft_2dim(Eigen::MatrixXcd &dst_mat,const Eigen::MatrixXcd &src_mat,bool forward=true);
+    void fft_2dim(Eigen::MatrixXcd &dst_mat,const Eigen::MatrixXcd &src_mat,bool forward=true)const;
 
-    int get_r(int r,int rows){
+    int get_r(int r,int rows)const{
       if(r < 0) r += rows;
       return r%rows;
     }
 
-    int get_c(int c,int cols){
+    int get_c(int c,int cols)const{
       if(c < 0) c += cols;
       return c%cols;
     }
 
     public:
-    ImageReconstructor(){}
+    ImageReconstructor(){
+      gaussian_size_ = 3;
+    }
+
     void set_epsilon(double e){ epsilon_ = e; }
+    void set_gaussian(int size,double sigma);
+    void set_max_count(int mc){ max_cnt_ = mc; }
+
     void operator()(const cv::Mat &src_img,cv::Mat &dst_img);
+    void blur(Eigen::MatrixXd &dst_mat,const Eigen::MatrixXd &src_mat)const;
   };
 };
 

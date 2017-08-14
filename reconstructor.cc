@@ -9,12 +9,6 @@
 
 using namespace imagereconstruction;
 
-const double ImageReconstructor::gaussian[gaussian_size][gaussian_size] = {
-  {0.0625,0.125,0.0625},
-  {0.125 ,0.25 ,0.125 },
-  {0.0625,0.125,0.0625}
-};
-
 const double ImageReconstructor::diff_horizontal[diff_size][diff_size] = {
   {0,0,0},
   {0,-1,1},
@@ -28,15 +22,17 @@ const double ImageReconstructor::diff_vertical[diff_size][diff_size] = {
 };
 
 void ImageReconstructor::operator()(const cv::Mat &src_img,cv::Mat &dst_img){
+  beta_ = 32 , mu_ = 0.05/(100);
   img_rows_ = src_img.rows;
   img_cols_ = src_img.cols;
-  dst_img = src_img.clone();
+  std::cout << img_rows_ << "," << img_cols_ << std::endl;
+
+  w_horizontal_ = Eigen::MatrixXd::Zero(img_rows_,img_cols_);
+  w_vertical_ = Eigen::MatrixXd::Zero(img_rows_,img_cols_);
 
   K_ = Eigen::MatrixXd::Zero(img_rows_,img_cols_);
   D_horizontal_ = Eigen::MatrixXd::Zero(img_rows_,img_cols_);
   D_vertical_ = Eigen::MatrixXd::Zero(img_rows_,img_cols_);
-
-  u_ = Eigen::MatrixXd::Zero(img_rows_,img_cols_);
 
   K_fft_ = Eigen::MatrixXd::Zero(img_rows_,img_cols_);
   D_horizontal_fft_ = Eigen::MatrixXd::Zero(img_rows_,img_cols_);
@@ -44,11 +40,11 @@ void ImageReconstructor::operator()(const cv::Mat &src_img,cv::Mat &dst_img){
 
   observed_img_fft_ = Eigen::MatrixXd::Zero(img_rows_,img_cols_);
 
-  for(int i=0;i<gaussian_size;++i){
-    for(int j=0;j<gaussian_size;++j){
-      int r = get_r(i-gaussian_size/2,img_rows_);
-      int c = get_c(j-gaussian_size/2,img_cols_);
-      K_(r,c) = gaussian[i][j];
+  for(int i=0;i<gaussian_size_;++i){
+    for(int j=0;j<gaussian_size_;++j){
+      int r = get_r(i-gaussian_size_/2,img_rows_);
+      int c = get_c(j-gaussian_size_/2,img_cols_);
+      K_(r,c) = gaussian_filter_(i,j);
     }
   }
 
@@ -68,25 +64,46 @@ void ImageReconstructor::operator()(const cv::Mat &src_img,cv::Mat &dst_img){
   cv::cv2eigen(src_img,observed_img_);
   fft_2dim(observed_img_fft_,observed_img_);
 
-  // while(check_stop_criterion()){
-  //   compute_w();
-  //   compute_u();
-  // }
+  u_ = observed_img_;
+  
+  int cnt = 0;
+  while(cnt<max_cnt_&&!check_stop_criterion()){
+    compute_w();
+    compute_u();
+
+    cnt++;
+  }
   
   cv::Mat work_img;
   cv::eigen2cv(u_,work_img);
   work_img.convertTo(dst_img,CV_8UC1);
 }
 
-double ImageReconstructor::compute_horizontal_diff(const Eigen::MatrixXd &mat,int r,int c){
+void ImageReconstructor::set_gaussian(int size,double sigma){
+  gaussian_size_ = size;
+  gaussian_filter_ = Eigen::MatrixXd::Zero(gaussian_size_,gaussian_size_);
+
+  double sum = 0;
+  for(int i=0;i<gaussian_size_;++i){
+    for(int j=0;j<gaussian_size_;++j){
+      int x = j-gaussian_size_/2;
+      int y = i-gaussian_size_/2;
+      gaussian_filter_(i,j) = std::exp(-(x*x+y*y)/(2.0*sigma*sigma));
+      sum += gaussian_filter_(i,j);
+    }
+  }
+  gaussian_filter_ /= sum;
+}
+
+double ImageReconstructor::compute_horizontal_diff(const Eigen::MatrixXd &mat,int r,int c)const{
   return mat(r,(c+1)%mat.cols())-mat(r,c);
 }
 
-double ImageReconstructor::compute_vertical_diff(const Eigen::MatrixXd &mat,int r,int c){
+double ImageReconstructor::compute_vertical_diff(const Eigen::MatrixXd &mat,int r,int c)const{
   return mat((r+1)%mat.rows(),c)-mat(r,c);
 }
 
-Eigen::Vector2d ImageReconstructor::compute_grad(const Eigen::MatrixXd &mat,int r,int c){
+Eigen::Vector2d ImageReconstructor::compute_grad(const Eigen::MatrixXd &mat,int r,int c)const{
   Eigen::Vector2d grad;
   grad << compute_horizontal_diff(mat,r,c) ,
           compute_vertical_diff(mat,r,c);
@@ -94,21 +111,21 @@ Eigen::Vector2d ImageReconstructor::compute_grad(const Eigen::MatrixXd &mat,int 
 }
 
 
-double ImageReconstructor::blur(const Eigen::MatrixXd &src_mat,int cr,int cc){
+double ImageReconstructor::blur(const Eigen::MatrixXd &src_mat,int cr,int cc)const{
   double blurred_val = 0;
-  for(int i=0;i<gaussian_size;++i){
-    for(int j=0;j<gaussian_size;++j){
-      int r = get_r(cr+i-gaussian_size/2,img_rows_);
-      int c = get_c(cc+j-gaussian_size/2,img_cols_);
+  for(int i=0;i<gaussian_size_;++i){
+    for(int j=0;j<gaussian_size_;++j){
+      int r = get_r(cr+i-gaussian_size_/2,img_rows_);
+      int c = get_c(cc+j-gaussian_size_/2,img_cols_);
 
-      blurred_val += src_mat(r,c)*gaussian[i][j];
+      blurred_val += src_mat(r,c)*gaussian_filter_(i,j);
     }
   }
   return blurred_val;
 }
 
 
-void ImageReconstructor::blur(Eigen::MatrixXd &dst_mat,const Eigen::MatrixXd &src_mat){
+void ImageReconstructor::blur(Eigen::MatrixXd &dst_mat,const Eigen::MatrixXd &src_mat)const{
   int rows = src_mat.rows();
   int cols = src_mat.cols();
 
@@ -119,7 +136,7 @@ void ImageReconstructor::blur(Eigen::MatrixXd &dst_mat,const Eigen::MatrixXd &sr
   }
 }
 
-bool ImageReconstructor::check_stop_criterion(){
+bool ImageReconstructor::check_stop_criterion()const{
   double max_r1_norm = -1.0e10 , max_r2 = -1.0e10;
 
   for(int r=0;r<img_rows_;++r){
@@ -127,9 +144,9 @@ bool ImageReconstructor::check_stop_criterion(){
       Eigen::Vector2d Du = compute_grad(u_,r,c);
       double Du_norm = Du.norm();
 
-      if(w_horizontal_(r,c)==0&&w_vertical_(r,c)==0){
+      if(std::abs(w_horizontal_(r,c))<epsilon_&&std::abs(w_vertical_(r,c))<epsilon_){
         double r2 = Du_norm - 1.0/beta_;
-        max_r2 = std::max(r2,max_r2);
+        max_r2 = std::max(std::abs(r2),max_r2);
       }else{
         Eigen::Vector2d w_vec;
         w_vec << w_horizontal_(r,c) , w_vertical_(r,c);
@@ -139,27 +156,25 @@ bool ImageReconstructor::check_stop_criterion(){
     }
   }
 
-  Eigen::MatrixXd r3(img_rows_,img_cols_);
+  // Eigen::MatrixXd r3(img_rows_,img_cols_);
 
-  double r3_norm = r3.lpNorm<Eigen::Infinity>(); 
+  // double r3_norm = r3.lpNorm<Eigen::Infinity>(); 
 
-  return max(max_r1_norm,max_r2,r3_norm) < epsilon_;
+  double max_r = max(max_r1_norm,max_r2);
+  std::cout << max_r << std::endl;
+  return max_r < epsilon_;
 }
 
 void ImageReconstructor::compute_w(){
   for(int r=0;r<img_rows_;++r){
     for(int c=0;c<img_cols_;++c){
-      double Du_x = compute_horizontal_diff(u_,r,c);
-      double Du_y = compute_vertical_diff(u_,r,c);
-
-      Eigen::Vector2d Du,w_vec;
-      Du << Du_x , Du_y;
+      Eigen::Vector2d Du(compute_grad(u_,r,c));
 
       double Du_norm = Du.norm();
       double coef = Du_norm-1.0/beta_;
       if(coef > 0){
-        w_horizontal_(r,c) = coef*Du_x/Du_norm;
-        w_vertical_(r,c) = coef*Du_y/Du_norm;
+        w_horizontal_(r,c) = coef*Du[0]/Du_norm;
+        w_vertical_(r,c) = coef*Du[1]/Du_norm;
       }else{
         w_horizontal_(r,c) = 0;
         w_vertical_(r,c) = 0;
@@ -193,9 +208,16 @@ void ImageReconstructor::compute_u(){
     }
   }
 
+  Eigen::MatrixXcd u_complex(img_rows_,img_cols_);
+  fft_2dim(u_complex,u_fft,false);
+  for(int i=0;i<img_rows_;++i){
+    for(int j=0;j<img_cols_;++j){
+      u_(i,j) = u_complex(i,j).real();
+    }
+  }
 }
 
-void ImageReconstructor::fft_2dim(Eigen::MatrixXcd &dst_mat,const Eigen::MatrixXcd &src_mat,bool forward){
+void ImageReconstructor::fft_2dim(Eigen::MatrixXcd &dst_mat,const Eigen::MatrixXcd &src_mat,bool forward)const{
   Eigen::FFT<double> fft;
   int rows = src_mat.rows();
   int cols = src_mat.cols();
