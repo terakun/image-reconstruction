@@ -24,6 +24,9 @@ namespace imagereconstruction{
 
     int max_cnt_;
 
+    double beta0_;
+    double max_beta_;
+
     int img_rows_,img_cols_;
     double beta_,mu_;
     double epsilon_;
@@ -41,8 +44,14 @@ namespace imagereconstruction{
     Eigen::MatrixXcd observed_img_fft_;
 
 
-    double compute_horizontal_diff(const Eigen::MatrixXd &,int r,int c)const;
-    double compute_vertical_diff(const Eigen::MatrixXd &,int r,int c)const;
+    double compute_forward_horizontal_diff(const Eigen::MatrixXd &,int r,int c)const;
+
+    void compute_forward_horizontal_diff(Eigen::MatrixXd &dst_mat,const Eigen::MatrixXd &src_mat)const;
+
+    double compute_forward_vertical_diff(const Eigen::MatrixXd &,int r,int c)const;
+
+    void compute_forward_vertical_diff(Eigen::MatrixXd &dst_mat,const Eigen::MatrixXd &src_mat)const;
+
     Eigen::Vector2d compute_grad(const Eigen::MatrixXd &,int r,int c)const;
 
     double blur(const Eigen::MatrixXd &src_mat,int r,int c)const;
@@ -72,6 +81,9 @@ namespace imagereconstruction{
     void set_epsilon(double e){ epsilon_ = e; }
     void set_gaussian(int size,double sigma);
     void set_max_count(int mc){ max_cnt_ = mc; }
+    void set_mu(double mu){ mu_ = mu; }
+    void set_beta0(double b0){ beta0_ = b0; }
+    void set_max_beta(double maxb){ max_beta_ = maxb; }
 
     void operator()(const cv::Mat &src_img,cv::Mat &dst_img);
     void blur(Eigen::MatrixXd &dst_mat,const Eigen::MatrixXd &src_mat)const;

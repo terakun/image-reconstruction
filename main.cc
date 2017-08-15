@@ -16,16 +16,17 @@ int main(int argc, char *argv[]){
   if(src_img.empty()) return -1;
 
   imagereconstruction::ImageReconstructor rc;
-  rc.set_epsilon(5.0e-2);
-  rc.set_max_count(20);
-  rc.set_gaussian(10,10.0);
+  rc.set_epsilon(1.0e-2);
+  rc.set_max_count(1000);
+  rc.set_gaussian(11,10.0);
+  rc.set_mu(100);
+  rc.set_beta0(1);
+  rc.set_max_beta(1<<7);
   cv::Mat dst_img;
   rc(src_img,dst_img);
 
   cv::namedWindow("noised image", CV_WINDOW_AUTOSIZE|CV_WINDOW_FREERATIO);
   cv::imshow("noised image", src_img);
-  cv::namedWindow("denoised image", CV_WINDOW_AUTOSIZE|CV_WINDOW_FREERATIO);
-  cv::imshow("denoised image", dst_img);
   cv::imwrite("hoge.png",dst_img);
    
   cv::waitKey(0);
