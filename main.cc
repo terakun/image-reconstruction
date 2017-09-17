@@ -7,8 +7,8 @@
 #include "./reconstructor.h"
 
 int main(int argc, char *argv[]){
-  if(argc < 2){
-    std::cerr << argv[0] << " [image file]" << std::endl;
+  if(argc < 8){
+    std::cerr << argv[0] << " [image file] [hsize] [sigma] [beta0] [max beta] [mu] [max count]" << std::endl;
     return 0;
   }
 
@@ -16,18 +16,18 @@ int main(int argc, char *argv[]){
   if(src_img.empty()) return -1;
 
   imagereconstruction::ImageReconstructor rc;
-  rc.set_epsilon(1.0e-2);
-  rc.set_max_count(1000);
-  rc.set_gaussian(11,10.0);
-  rc.set_mu(100);
-  rc.set_beta0(1);
-  rc.set_max_beta(1<<7);
+  rc.set_epsilon(2.0e-3);
+  rc.set_max_count(std::atoi(argv[7]));
+  rc.set_gaussian(std::atoi(argv[2]),std::atof(argv[3]));
+  rc.set_mu(std::atof(argv[6]));
+  rc.set_beta0(std::atof(argv[4]));
+  rc.set_max_beta(std::atof(argv[5]));
   cv::Mat dst_img;
   rc(src_img,dst_img);
 
-  cv::namedWindow("noised image", CV_WINDOW_AUTOSIZE|CV_WINDOW_FREERATIO);
+  cv::namedWindow("noised image", CV_WINDOW_AUTOSIZE);
   cv::imshow("noised image", src_img);
-  cv::imwrite("hoge.png",dst_img);
+  cv::imwrite("dst.png",dst_img);
    
   cv::waitKey(0);
   return 0;

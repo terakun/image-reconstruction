@@ -18,10 +18,7 @@ namespace imagereconstruction{
     int gaussian_size_;
     Eigen::MatrixXd gaussian_filter_;
 
-    static constexpr int diff_size = 3;
-    static const double diff_horizontal[diff_size][diff_size];
-    static const double diff_vertical[diff_size][diff_size];
-
+    int cnt_;
     int max_cnt_;
 
     double beta0_;
@@ -43,14 +40,19 @@ namespace imagereconstruction{
     Eigen::MatrixXcd K_fft_;             // blurring operator
     Eigen::MatrixXcd observed_img_fft_;
 
+    Eigen::MatrixXcd denom_fft_;
 
     double compute_forward_horizontal_diff(const Eigen::MatrixXd &,int r,int c)const;
-
     void compute_forward_horizontal_diff(Eigen::MatrixXd &dst_mat,const Eigen::MatrixXd &src_mat)const;
 
     double compute_forward_vertical_diff(const Eigen::MatrixXd &,int r,int c)const;
-
     void compute_forward_vertical_diff(Eigen::MatrixXd &dst_mat,const Eigen::MatrixXd &src_mat)const;
+
+    double compute_backward_horizontal_diff(const Eigen::MatrixXd &,int r,int c)const;
+    void compute_backward_horizontal_diff(Eigen::MatrixXd &dst_mat,const Eigen::MatrixXd &src_mat)const;
+
+    double compute_backward_vertical_diff(const Eigen::MatrixXd &,int r,int c)const;
+    void compute_backward_vertical_diff(Eigen::MatrixXd &dst_mat,const Eigen::MatrixXd &src_mat)const;
 
     Eigen::Vector2d compute_grad(const Eigen::MatrixXd &,int r,int c)const;
 
