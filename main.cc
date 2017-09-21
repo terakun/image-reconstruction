@@ -27,6 +27,9 @@ int main(int argc, char *argv[]){
 
   cv::namedWindow("noised image", CV_WINDOW_AUTOSIZE);
   cv::imshow("noised image", src_img);
+
+  cv::namedWindow("denoised image", CV_WINDOW_AUTOSIZE);
+  cv::imshow("denoised image", dst_img);
   cv::imwrite("dst.png",dst_img);
    
   cv::waitKey(0);
