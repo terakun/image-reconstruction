@@ -40,10 +40,10 @@ void ImageReconstructor::operator()(const cv::Mat &src_img,cv::Mat &dst_img){
   }
 
   D_horizontal_(0,0) = -1;
-  D_horizontal_(0,1) = 1;
+  D_horizontal_(0,img_cols_-1) = 1;
 
   D_vertical_(0,0) = -1;
-  D_vertical_(1,0) = 1;
+  D_vertical_(img_rows_-1,0) = 1;
  
   fft_2dim(K_fft_,K_);
   fft_2dim(D_horizontal_fft_,D_horizontal_);
